@@ -1,0 +1,26 @@
+Final Project for Princeton's COS429
+
+Deadlines/Workflow
+Note: Anytime you run the model, make sure you save the results in some sort of output. We need a naming convention. The best way would be to save generated images in some sort of folder like 20XX-XX-XX… 
+
+December 15-21
+Download and process data set
+Train model on one image or subset and see how it performs
+
+December 21st -- 1st Meeting
+Meeting to discuss progress so far
+
+December 22-28
+Hyper parameter tuning
+Judge results 
+Ask others to become evaluators
+
+December 29-January 4
+More hyper parameter tuning/model evaluation
+Try to get model to generate its own images given a category
+More Evaluation
+
+January 5-11
+Wrap up everything 
+Start working on report and poster
+Rehearse presentation
