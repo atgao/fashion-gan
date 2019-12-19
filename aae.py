@@ -6,10 +6,12 @@ import itertools
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
+from config import *
 
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torch.autograd import Variable
+from data import Fashion_attr_prediction
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,6 +36,21 @@ print(opt)
 img_shape = (opt.channels, opt.img_size, opt.img_size)
 
 cuda = True if torch.cuda.is_available() else False
+
+data_transform_train = transforms.Compose([
+    transforms.Scale(CROP_SIZE),
+    transforms.RandomSizedCrop(CROP_SIZE),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+
+data_transform_test = transforms.Compose([
+    transforms.Scale(CROP_SIZE),
+    transforms.CenterCrop(CROP_SIZE),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
 
 
 def reparameterization(mu, logvar):
@@ -60,6 +77,8 @@ class Encoder(nn.Module):
 
     def forward(self, img):
         img_flat = img.view(img.shape[0], -1)
+        print(img.shape[0], np.prod(img_shape))
+        print(opt.channels, opt.img_size, IMG_SIZE)
         x = self.model(img_flat)
         mu = self.mu(x)
         logvar = self.logvar(x)
@@ -122,15 +141,11 @@ if cuda:
     pixelwise_loss.cuda()
 
 # Configure data loader
-os.makedirs("../../data/mnist", exist_ok=True)
+os.makedirs("../../data/deepfashion", exist_ok=True)
 dataloader = torch.utils.data.DataLoader(
-    datasets.MNIST(
-        "../../data/mnist",
-        train=True,
-        download=True,
-        transform=transforms.Compose(
-            [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
-        ),
+    Fashion_attr_prediction(
+        type="train", 
+        transform=data_transform_train
     ),
     batch_size=opt.batch_size,
     shuffle=True,
@@ -166,7 +181,6 @@ for epoch in range(opt.n_epochs):
 
         # Configure input
         real_imgs = Variable(imgs.type(Tensor))
-
         # -----------------
         #  Train Generator
         # -----------------
