@@ -33,24 +33,22 @@ parser.add_argument("--sample_interval", type=int, default=400, help="interval b
 opt = parser.parse_args()
 print(opt)
 
-img_shape = (opt.channels, opt.img_size, opt.img_size)
+img_shape = (IMG_CHANNELS, opt.img_size, opt.img_size)
 
 cuda = True if torch.cuda.is_available() else False
 
 data_transform_train = transforms.Compose([
-    transforms.Scale(CROP_SIZE),
-    transforms.RandomSizedCrop(CROP_SIZE),
+    transforms.RandomResizedCrop(CROP_SIZE),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-data_transform_test = transforms.Compose([
-    transforms.Scale(CROP_SIZE),
-    transforms.CenterCrop(CROP_SIZE),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
+# data_transform_test = transforms.Compose([
+#     transforms.RandomResizedCrop(CROP_SIZE),
+#     transforms.ToTensor(),
+#     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+#     ])
 
 
 def reparameterization(mu, logvar):
@@ -77,8 +75,6 @@ class Encoder(nn.Module):
 
     def forward(self, img):
         img_flat = img.view(img.shape[0], -1)
-        print(img.shape[0], np.prod(img_shape))
-        print(opt.channels, opt.img_size, IMG_SIZE)
         x = self.model(img_flat)
         mu = self.mu(x)
         logvar = self.logvar(x)
