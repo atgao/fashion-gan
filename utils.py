@@ -13,5 +13,5 @@ def save_model(model, epoch, model_type):
 	torch.save(model.state_dict(), save_path)
 	return save_path
 
-def load_model:
+def load_model():
 	pass 
