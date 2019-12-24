@@ -26,10 +26,10 @@ import torch
 #     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 #     ])
 
-
+cuda = True if torch.cuda.is_available() else False
 
 def reparameterization(mu, logvar):
-    Tensor = torch.FloatTensor
+    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
     std = torch.exp(logvar / 2)
     sampled_z = Variable(Tensor(np.random.normal(0, 1, (mu.size(0), LATENT_DIM))))
     z = sampled_z * std + mu
@@ -100,7 +100,7 @@ class Discriminator(nn.Module):
 def sample_image(decoder, n_row, batches_done):
     """Saves a grid of generated digits"""
     # Sample noise
-    Tensor = torch.FloatTensor
+    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
     z = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
     gen_imgs = decoder(z)
     save_image(gen_imgs.data, "images/%d.png" % batches_done, nrow=n_row, normalize=True)

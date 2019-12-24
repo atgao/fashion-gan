@@ -17,7 +17,7 @@ class Fashion_attr_prediction(data.Dataset):
             self.img_path = img_path
             return
         self.train_list = []
-        self.train_dict = {i: [] for i in range(CATEGORIES)}
+        self.train_dict = {i: [] for i in [6, 10, 16, 26, 33, 34, 38, 41, 47]}
         self.test_list = []
         self.all_list = []
         self.bbox = dict()
@@ -42,8 +42,8 @@ class Fashion_attr_prediction(data.Dataset):
         category_img_pairs = self.read_lines(list_category_img)
         for k, v in category_img_pairs:
             v = int(v)
-            if v <= 20:
-                self.anno[k] = v - 1
+            if v in self.train_dict:
+                self.anno[k] = v 
         for k, v in partition_pairs:
             if k in self.anno:
                 if v == "train":
