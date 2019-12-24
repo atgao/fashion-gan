@@ -126,6 +126,8 @@ def train(b1, b2):
 	            save_model(decoder, epoch, "decoder")
 	            save_model(discriminator, epoch, "discriminator")
 
+	return encoder, decoder, discriminator
+
 
 
 if __name__=="__main__":
@@ -137,12 +139,12 @@ if __name__=="__main__":
 	opt = parser.parse_args()
 	print(opt)
 
-	train(opt.b1, opt.b2)
+	encoder, decoder, discriminator = train(opt.b1, opt.b2)
 	# ----------
 	#  Save Model and create Training Log
 	# ----------
 	# TODO: save this to a folder logs
 	print(opt)
-	print("Saved Encoder to {}".format(save_model(encoder, epoch, "encoder")))
-	print("Saved Decoder to {}".format(save_model(decoder, epoch, "decoder")))
-	print("Saved Discriminator to {}".format(save_model(discriminator, epoch, "discriminator")))
+	print("Saved Encoder to {}".format(save_model(encoder, N_EPOCHS, "encoder")))
+	print("Saved Decoder to {}".format(save_model(decoder, N_EPOCHS, "decoder")))
+	print("Saved Discriminator to {}".format(save_model(discriminator, N_EPOCHS, "discriminator")))
