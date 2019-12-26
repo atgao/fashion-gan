@@ -3,6 +3,7 @@ import os
 import numpy as np
 import math
 import itertools
+from datetime import date
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
@@ -22,110 +23,124 @@ import torch
 # ----------
 #  Training
 # ----------
+cuda = True if torch.cuda.is_available() else False
+today = date.today().strftime("%Y%m%d")
 
 def train(b1, b2):
 	img_shape = (IMG_CHANNELS, IMG_SIZE, IMG_SIZE)
 
-	cuda = True if torch.cuda.is_available() else False
-
 	# dataset
 	data_transform_train = transforms.Compose([
-	    transforms.RandomResizedCrop(CROP_SIZE),
-	    transforms.RandomHorizontalFlip(),
-	    transforms.ToTensor(),
-	    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-	    ])
+		transforms.RandomResizedCrop(CROP_SIZE),
+		transforms.RandomHorizontalFlip(),
+		transforms.ToTensor(),
+		transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+		])
 
 	# Use binary cross-entropy loss
 	adversarial_loss = torch.nn.BCELoss()
 	pixelwise_loss = torch.nn.L1Loss()
 
+	device = torch.device("cuda" if cuda else "cpu")
 	# Initialize generator and discriminator
-	encoder = Encoder()
-	decoder = Decoder()
-	discriminator = Discriminator()
+	encoder = Encoder().to(device)
+	decoder = Decoder().to(device)
+	discriminator = Discriminator().to(device)
 
 	if cuda:
-	    encoder.cuda()
-	    decoder.cuda()
-	    discriminator.cuda()
-	    adversarial_loss.cuda()
-	    pixelwise_loss.cuda()
+		encoder.cuda()
+		decoder.cuda()
+		discriminator.cuda()
+		adversarial_loss.cuda()
+		pixelwise_loss.cuda()
 
 	# Configure data loader
-	os.makedirs("../../data/deepfashion", exist_ok=True)
+	# os.makedirs("../../data/deepfashion", exist_ok=True)
 	dataloader = torch.utils.data.DataLoader(
-	    Fashion_attr_prediction(
-	        type="train", 
-	        transform=data_transform_train
-	    ),
-	    batch_size=TRAIN_BATCH_SIZE,
-	    shuffle=True,
+		Fashion_attr_prediction(
+			type="train", 
+			transform=data_transform_train
+		),
+		batch_size=TRAIN_BATCH_SIZE,
+		shuffle=True,
 	)
 
 	# Optimizers
 	optimizer_G = torch.optim.Adam(
-	    itertools.chain(encoder.parameters(), decoder.parameters()), lr=LR, betas=(b1, b2)
+		itertools.chain(encoder.parameters(), decoder.parameters()), lr=LR, betas=(b1, b2)
 	)
 	optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=LR, betas=(b1, b2))
 
 	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+	# generate fixed noise vector
+	n_row = 10
+	fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
+	# save losses across all
+	G_losses = []
+	D_losses = []
 
 	for epoch in range(N_EPOCHS):
-	    for i, (imgs, _) in enumerate(dataloader):
+		for i, (imgs, _) in enumerate(dataloader):
 
-	        # Adversarial ground truths
-	        valid = Variable(Tensor(imgs.shape[0], 1).fill_(1.0), requires_grad=False)
-	        fake = Variable(Tensor(imgs.shape[0], 1).fill_(0.0), requires_grad=False)
+			# Adversarial ground truths
+			valid = Variable(Tensor(imgs.shape[0], 1).fill_(1.0), requires_grad=False)
+			fake = Variable(Tensor(imgs.shape[0], 1).fill_(0.0), requires_grad=False)
 
-	        # Configure input
-	        real_imgs = Variable(imgs.type(Tensor))
-	        # -----------------
-	        #  Train Generator
-	        # -----------------
+			# Configure input
+			real_imgs = Variable(imgs.type(Tensor))
+			# -----------------
+			#  Train Generator
+			# -----------------
 
-	        optimizer_G.zero_grad()
+			optimizer_G.zero_grad()
 
-	        encoded_imgs = encoder(real_imgs)
-	        decoded_imgs = decoder(encoded_imgs)
+			encoded_imgs = encoder(real_imgs)
+			decoded_imgs = decoder(encoded_imgs)
 
-	        # Loss measures generator's ability to fool the discriminator
-	        g_loss = 0.001 * adversarial_loss(discriminator(encoded_imgs), valid) + 0.999 * pixelwise_loss(
-	            decoded_imgs, real_imgs
-	        )
+			# Loss measures generator's ability to fool the discriminator
+			g_loss = 0.001 * adversarial_loss(discriminator(encoded_imgs), valid) + 0.999 * pixelwise_loss(
+				decoded_imgs, real_imgs
+			)
 
-	        g_loss.backward()
-	        optimizer_G.step()
+			g_loss.backward()
+			optimizer_G.step()
 
-	        # ---------------------
-	        #  Train Discriminator
-	        # ---------------------
+			# ---------------------
+			#  Train Discriminator
+			# ---------------------
 
-	        optimizer_D.zero_grad()
+			optimizer_D.zero_grad()
 
-	        # Sample noise as discriminator ground truth
-	        z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], LATENT_DIM))))
+			# Sample noise as discriminator ground truth
+			z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], LATENT_DIM))))
 
-	        # Measure discriminator's ability to classify real from generated samples
-	        real_loss = adversarial_loss(discriminator(z), valid)
-	        fake_loss = adversarial_loss(discriminator(encoded_imgs.detach()), fake)
-	        d_loss = 0.5 * (real_loss + fake_loss)
+			# Measure discriminator's ability to classify real from generated samples
+			real_loss = adversarial_loss(discriminator(z), valid)
+			fake_loss = adversarial_loss(discriminator(encoded_imgs.detach()), fake)
+			d_loss = 0.5 * (real_loss + fake_loss)
 
-	        d_loss.backward()
-	        optimizer_D.step()
+			d_loss.backward()
+			optimizer_D.step()
 
-	        print(
-	            "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-	            % (epoch, N_EPOCHS, i, len(dataloader), d_loss.item(), g_loss.item())
-	        )
+			batches_done = epoch * len(dataloader) + i
 
-	        batches_done = epoch * len(dataloader) + i
-	        if batches_done % SAMPLE_INTERVAL == 0:
-	            sample_image(decoder=decoder, n_row=10, batches_done=batches_done)
-	            save_model(encoder, epoch, "encoder")
-	            save_model(decoder, epoch, "decoder")
-	            save_model(discriminator, epoch, "discriminator")
+			if batches_done % 50 == 0:
+				print(
+					"[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
+					% (epoch, N_EPOCHS, i, len(dataloader), d_loss.item(), g_loss.item())
+				)
+			
+			if batches_done % SAMPLE_INTERVAL == 0:
+				name = gen_name("aae", CATEGORIES, TRAIN_BATCH_SIZE, batches_done, today)
+				sample_image_fixed(decoder=decoder, fixed_noise=fixed_noise, n_row=n_row, name=name)
 
+			# save images 
+			G_losses.append(g_loss.item())
+			D_losses.append(d_loss.item())
+		#save_model(encoder, epoch, "encoder")
+		#save_model(decoder, epoch, "decoder")
+		#save_model(discriminator, epoch, "discriminator")
+	plot_losses("aae", G_losses, D_losses, CATEGORIES, TRAIN_BATCH_SIZE, N_EPOCHS, today)
 	return encoder, decoder, discriminator
 
 
@@ -145,6 +160,6 @@ if __name__=="__main__":
 	# ----------
 	# TODO: save this to a folder logs
 	print(opt)
-	print("Saved Encoder to {}".format(save_model(encoder, N_EPOCHS, "encoder")))
-	print("Saved Decoder to {}".format(save_model(decoder, N_EPOCHS, "decoder")))
-	print("Saved Discriminator to {}".format(save_model(discriminator, N_EPOCHS, "discriminator")))
+	print("Saved Encoder to {}".format(save_model(encoder, N_EPOCHS, "aae_encoder", CATEGORIES, TRAIN_BATCH_SIZE, today)))
+	print("Saved Decoder to {}".format(save_model(decoder, N_EPOCHS, "aae_decoder", CATEGORIES, TRAIN_BATCH_SIZE, today)))
+	print("Saved Discriminator to {}".format(save_model(discriminator, N_EPOCHS, "aae_discriminator", CATEGORIES, TRAIN_BATCH_SIZE, today)))

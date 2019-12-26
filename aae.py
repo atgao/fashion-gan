@@ -105,6 +105,11 @@ def sample_image(decoder, n_row, batches_done):
     gen_imgs = decoder(z)
     save_image(gen_imgs.data, "images/%d.png" % batches_done, nrow=n_row, normalize=True)
 
+def sample_image_fixed(decoder, fixed_noise, n_row, name):
+    """Saves a grid of generated digits"""
+    gen_imgs = decoder(fixed_noise)
+    save_image(gen_imgs.data, "images/%s.png" % name, nrow=n_row, normalize=False)
+
 
 
 

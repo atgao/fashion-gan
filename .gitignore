@@ -1,6 +1,7 @@
 data/
 images/
 model/
+plots/
 
 *.pyc
 *.o*
