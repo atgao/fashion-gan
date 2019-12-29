@@ -13,8 +13,9 @@ def save_model(model, epoch, model_type, categories, batch_size, date):
 	torch.save(model.state_dict(), save_path)
 	return save_path
 
-def load_model():
-	pass 
+def load_model(model_type, epoch, categories, batch_size, date):
+	model_path = "model/{}.pkl".format(gen_name(model_type, epoch, categories, batch_size, date))
+	return torch.load(model_path)
 
 def plot_losses(model_name, G_losses, D_losses, categories, batch_size, epoch, date, show=True, save=True):
 	plt.figure(figsize=(10,5))
@@ -30,8 +31,6 @@ def plot_losses(model_name, G_losses, D_losses, categories, batch_size, epoch, d
 
 	if show:
 		plt.show(block=False)
-
-	
 
 def gen_name(model_name, *args):
 	name = model_name

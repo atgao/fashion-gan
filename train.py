@@ -131,7 +131,7 @@ def train(b1, b2):
 				)
 			
 			if batches_done % SAMPLE_INTERVAL == 0:
-				name = gen_name("aae", CATEGORIES, TRAIN_BATCH_SIZE, batches_done, today)
+				name = gen_name("aae", CATEGORIES_AS_STR, TRAIN_BATCH_SIZE, batches_done, today)
 				sample_image_fixed(decoder=decoder, fixed_noise=fixed_noise, n_row=n_row, name=name)
 
 			# save images 
@@ -140,7 +140,7 @@ def train(b1, b2):
 		#save_model(encoder, epoch, "encoder")
 		#save_model(decoder, epoch, "decoder")
 		#save_model(discriminator, epoch, "discriminator")
-	plot_losses("aae", G_losses, D_losses, CATEGORIES, TRAIN_BATCH_SIZE, N_EPOCHS, today)
+	plot_losses("aae", G_losses, D_losses, CATEGORIES_AS_STR, TRAIN_BATCH_SIZE, N_EPOCHS, today)
 	return encoder, decoder, discriminator
 
 
@@ -160,6 +160,6 @@ if __name__=="__main__":
 	# ----------
 	# TODO: save this to a folder logs
 	print(opt)
-	print("Saved Encoder to {}".format(save_model(encoder, N_EPOCHS, "aae_encoder", CATEGORIES, TRAIN_BATCH_SIZE, today)))
-	print("Saved Decoder to {}".format(save_model(decoder, N_EPOCHS, "aae_decoder", CATEGORIES, TRAIN_BATCH_SIZE, today)))
-	print("Saved Discriminator to {}".format(save_model(discriminator, N_EPOCHS, "aae_discriminator", CATEGORIES, TRAIN_BATCH_SIZE, today)))
+	print("Saved Encoder to {}".format(save_model(encoder, N_EPOCHS, "aae_encoder", CATEGORIES_AS_STR, TRAIN_BATCH_SIZE, today)))
+	print("Saved Decoder to {}".format(save_model(decoder, N_EPOCHS, "aae_decoder", CATEGORIES_AS_STR, TRAIN_BATCH_SIZE, today)))
+	print("Saved Discriminator to {}".format(save_model(discriminator, N_EPOCHS, "aae_discriminator", CATEGORIES_AS_STR, TRAIN_BATCH_SIZE, today)))
