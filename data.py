@@ -81,7 +81,7 @@ class Fashion_attr_prediction(data.Dataset):
         if self.type == "all":
             img_path = self.all_list[index]
         elif self.type == "train":
-            img_path = self.train_list[0]
+            img_path = self.train_list[index]
         else:
             img_path = self.test_list[index]
         target = self.anno[img_path]

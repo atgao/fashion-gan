@@ -68,14 +68,16 @@ def train(b1, b2):
 		num_workers=NUM_WORKERS,
 		shuffle=True,
 	)
-	dataiter = iter(dataloader)
-	images, labels = dataiter.next()
-	save_image(images, "test.png", normalize=True)
+	#for testing input images
+	#dataiter = iter(dataloader)
+	#images, labels = dataiter.next()
+	#save_image(images, "test.png", normalize=True)
 	#img = torchvision.utils.make_grid(images, normalize=True)
 	#npimg = img.numpy()
 	#plt.imshow(np.transpose(npimg, (1, 2, 0)))
 	#plt.show()
 	#return
+
 	# Optimizers
 	optimizer_G = torch.optim.Adam(
 		itertools.chain(encoder.parameters(), decoder.parameters()), lr=LR, betas=(b1, b2)
@@ -83,13 +85,18 @@ def train(b1, b2):
 	optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=LR, betas=(b1, b2))
 
 	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+
 	# generate fixed noise vector
 	n_row = 10
 	fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
+	# make directory for saving images
+	os.makedirs("images/%s" % CATEGORIES_AS_STR, exist_ok=True)
+
 	# save losses across all
 	G_losses = []
 	D_losses = []
 
+	# training loop 
 	for epoch in range(N_EPOCHS):
 		for i, (imgs, _) in enumerate(dataloader):
 
@@ -142,9 +149,9 @@ def train(b1, b2):
 				)
 			
 			if batches_done % SAMPLE_INTERVAL == 0:
-				name = gen_name("aae", CATEGORIES_AS_STR, LR, TRAIN_BATCH_SIZE, batches_done, today)
+				name = gen_name("aae", CONFIG_AS_STR, today, batches_done)
 				if FIXED_NOISE:
-					sample_image_fixed(decoder=decoder, fixed_noise=fixed_noise, n_row=n_row, name=name)
+					sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise)
 				else:
 					sample_image(decoder=decoder, n_row=n_row, name=name)
 
@@ -154,7 +161,7 @@ def train(b1, b2):
 		#save_model(encoder, epoch, "encoder")
 		#save_model(decoder, epoch, "decoder")
 		#save_model(discriminator, epoch, "discriminator")
-	plot_losses("aae", G_losses, D_losses, CATEGORIES_AS_STR, LR, TRAIN_BATCH_SIZE, N_EPOCHS, today)
+	plot_losses("aae", G_losses, D_losses, CONFIG_AS_STR, today)
 	return encoder, decoder, discriminator
 
 
@@ -174,6 +181,6 @@ if __name__=="__main__":
 	# ----------
 	# TODO: save this to a folder logs
 	print(opt)
-	print("Saved Encoder to {}".format(save_model(encoder, N_EPOCHS, "aae_encoder", CATEGORIES_AS_STR, LR, TRAIN_BATCH_SIZE, today)))
-	print("Saved Decoder to {}".format(save_model(decoder, N_EPOCHS, "aae_decoder", CATEGORIES_AS_STR, LR, TRAIN_BATCH_SIZE, today)))
-	print("Saved Discriminator to {}".format(save_model(discriminator, N_EPOCHS, "aae_discriminator", CATEGORIES_AS_STR, LR, TRAIN_BATCH_SIZE, today)))
+	print("Saved Encoder to {}".format(save_model(encoder, "aae_encoder", CONFIG_AS_STR, today)))
+	print("Saved Decoder to {}".format(save_model(decoder, "aae_decoder", CONFIG_AS_STR, today)))
+	print("Saved Discriminator to {}".format(save_model(discriminator, "aae_discriminator", CONFIG_AS_STR, today)))
