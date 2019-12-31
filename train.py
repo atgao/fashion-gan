@@ -64,6 +64,7 @@ def train(b1, b2):
 			transform=data_transform_train
 		),
 		batch_size=TRAIN_BATCH_SIZE,
+		num_workers=NUM_WORKERS,
 		shuffle=True,
 	)
 	#dataiter = iter(dataloader)
