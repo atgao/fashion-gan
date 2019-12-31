@@ -61,15 +61,16 @@ def train(b1, b2):
 	dataloader = torch.utils.data.DataLoader(
 		Fashion_attr_prediction(
 			type="train", 
-			transform=data_transform_train
+			transform=data_transform_train,
+			crop=True
 		),
 		batch_size=TRAIN_BATCH_SIZE,
 		num_workers=NUM_WORKERS,
 		shuffle=True,
 	)
-	#dataiter = iter(dataloader)
-	#images, labels = dataiter.next()
-	#save_image(images, "test.png" normalize=True)
+	dataiter = iter(dataloader)
+	images, labels = dataiter.next()
+	save_image(images, "test.png", normalize=True)
 	#img = torchvision.utils.make_grid(images, normalize=True)
 	#npimg = img.numpy()
 	#plt.imshow(np.transpose(npimg, (1, 2, 0)))
