@@ -7,6 +7,7 @@ from datetime import date
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
+import torchvision
 from config import *
 from utils import *
 
@@ -31,10 +32,11 @@ def train(b1, b2):
 
 	# dataset
 	data_transform_train = transforms.Compose([
-		transforms.RandomResizedCrop(CROP_SIZE),
+		transforms.Resize(IMG_SIZE),
+		transforms.CenterCrop(CROP_SIZE),
 		transforms.RandomHorizontalFlip(),
 		transforms.ToTensor(),
-		transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+		transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
 		])
 
 	# Use binary cross-entropy loss
@@ -64,7 +66,14 @@ def train(b1, b2):
 		batch_size=TRAIN_BATCH_SIZE,
 		shuffle=True,
 	)
-
+	#dataiter = iter(dataloader)
+	#images, labels = dataiter.next()
+	#save_image(images, "test.png" normalize=True)
+	#img = torchvision.utils.make_grid(images, normalize=True)
+	#npimg = img.numpy()
+	#plt.imshow(np.transpose(npimg, (1, 2, 0)))
+	#plt.show()
+	#return
 	# Optimizers
 	optimizer_G = torch.optim.Adam(
 		itertools.chain(encoder.parameters(), decoder.parameters()), lr=LR, betas=(b1, b2)
@@ -132,9 +141,12 @@ def train(b1, b2):
 			
 			if batches_done % SAMPLE_INTERVAL == 0:
 				name = gen_name("aae", CATEGORIES_AS_STR, LR, TRAIN_BATCH_SIZE, batches_done, today)
-				sample_image_fixed(decoder=decoder, fixed_noise=fixed_noise, n_row=n_row, name=name)
+				if FIXED_NOISE:
+					sample_image_fixed(decoder=decoder, fixed_noise=fixed_noise, n_row=n_row, name=name)
+				else:
+					sample_image(decoder=decoder, n_row=n_row, name=name)
 
-			# save images 
+			# save losses
 			G_losses.append(g_loss.item())
 			D_losses.append(d_loss.item())
 		#save_model(encoder, epoch, "encoder")
