@@ -11,11 +11,7 @@ class Fashion_attr_prediction(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
         self.crop = crop
-        # type_all = ["train", "test"]
         self.type = type
-        if type == "single":
-            self.img_path = img_path
-            return
         self.train_list = []
         self.train_dict = {i: [] for i in CATEGORIES}
         self.test_list = []
@@ -61,7 +57,7 @@ class Fashion_attr_prediction(data.Dataset):
         list_bbox = os.path.join(DATASET_BASE, r'Anno', r'list_bbox.txt')
         pairs = self.read_lines(list_bbox)
         for k, x1, y1, x2, y2 in pairs:
-            self.bbox[k] = [x1, y1, x2, y2]
+            self.bbox[k] = [int(x1), int(y1), int(x2), int(y2)]
 
     def read_lines(self, path):
         with open(path) as fin:
@@ -71,7 +67,6 @@ class Fashion_attr_prediction(data.Dataset):
         return pairs
 
     def read_crop(self, img_path):
-        # print(img_path)
         img_full_path = os.path.join(DATASET_BASE, img_path)
         with open(img_full_path, 'rb') as f:
             with Image.open(f) as img:
@@ -83,29 +78,6 @@ class Fashion_attr_prediction(data.Dataset):
         return img
 
     def __getitem__(self, index):
-        if self.type == "triplet":
-            img_path = self.train_list[index]
-            target = self.anno[img_path]
-            img_p = random.choice(self.train_dict[target])
-            img_n = random.choice(
-                self.train_dict[random.choice([c for c in CATEGORIES if c != target])]
-            )
-            img = self.read_crop(img_path)
-            img_p = self.read_crop(img_p)
-            img_n = self.read_crop(img_n)
-            if self.transform is not None:
-                img = self.transform(img)
-                img_p = self.transform(img_p)
-                img_n = self.transform(img_n)
-            return img, img_p, img_n
-
-        if self.type == "single":
-            img_path = self.img_path
-            img = self.read_crop(img_path)
-            if self.transform is not None:
-                img = self.transform(img)
-            return img
-
         if self.type == "all":
             img_path = self.all_list[index]
         elif self.type == "train":
