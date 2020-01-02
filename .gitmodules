@@ -1,3 +1,0 @@
-[submodule "pytorch-fid"]
-	path = pytorch-fid
-	url = git@github.com:suhjohn/pytorch-fid.git
