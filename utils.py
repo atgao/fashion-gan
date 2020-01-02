@@ -13,8 +13,8 @@ def save_model(model, model_type, config, date):
 	torch.save(model.state_dict(), save_path)
 	return save_path
 
-def load_model(model_type, epoch, categories, batch_size, date):
-	model_path = "model/{}.pkl".format(gen_name(model_type, epoch, categories, batch_size, date))
+def load_model(model_type, config, date):
+	model_path = "model/{}.pkl".format(gen_name(model_type, config, date))
 	return torch.load(model_path)
 
 def plot_losses(model_name, G_losses, D_losses, config, date, show=True, save=True):
