@@ -144,7 +144,6 @@ def scale_images(images, new_shape):
         # resize with nearest neighbor interpolation
         # originally scikit.resize
         new_image = np.resize(image, new_shape)
-        # store
         images_list.append(new_image)
     return np.asarray(images_list)
 
@@ -231,19 +230,80 @@ def calculate_activation_statistics(files, model, batch_size=50,
     return mu, sigma
 
 
+def calculate_activation_statistics_dataloader(dataloader, model,
+                                               dims=2048, cuda=False,
+                                               verbose=False):
+    act = get_activations_batch(dataloader, model, dims, cuda, verbose)
+    mu = np.mean(act, axis=0)
+    sigma = np.cov(act, rowvar=False)
+    return mu, sigma
+
+
+def get_activations_batch(dataloader, model, dims=2048,
+                    cuda=False, verbose=False):
+    model.eval()
+    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+    pred_arr = np.empty((len(dataloader), dims))
+    for i, (imgs, _) in enumerate(dataloader):
+        if verbose:
+            print('\rPropagating batch {}/{}'.format(i + 1, len(dataloader)),
+                  end='', flush=True)
+        batch_size = imgs.shape[0]
+        start = i * batch_size
+        end = start + batch_size
+
+        # black magic
+        imgs = imgs.numpy.transpose((0, 3, 1, 2))
+        imgs /= 255
+
+        batch = torch.from_numpy(imgs).type(Tensor)
+        pred = model(batch)[0]
+
+        # If model output is not scalar, apply global spatial average pooling.
+        # This happens if you choose a dimensionality not equal 2048.
+        if pred.shape[2] != 1 or pred.shape[3] != 1:
+            pred = adaptive_avg_pool2d(pred, output_size=(1, 1))
+
+        pred_arr[start:end] = pred.cpu().data.numpy().reshape(batch_size, -1)
+
+    if verbose:
+        print(' done')
+
+    return pred_arr
+
+
+def _collect_images(path_str):
+    """
+    Returns list of files with jpg and png in the path provided
+    :param path_str:
+    :return:
+    """
+    path = pathlib.Path(path_str)
+    return list(path.glob('**/*.jpg')) + list(path.glob('**/*.png'))
+
+
 def _compute_statistics_of_path(path, model, batch_size, dims, cuda):
     if path.endswith('.npz'):
         f = np.load(path)
         m, s = f['mu'][:], f['sigma'][:]
         f.close()
     else:
-        path = pathlib.Path(path)
-
-        files = list(path.glob('**/*.jpg')) + list(path.glob('**/*.png'))
+        files = _collect_images(path)
         m, s = calculate_activation_statistics(files, model, batch_size,
                                                dims, cuda)
 
     return m, s
+
+
+def calculate_fid_given_dataloaders(dataloader_a, dataloader_b, cuda, dims):
+    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
+    model = InceptionV3([block_idx])
+    if cuda:
+        model.cuda()
+    m1, s1 = get_activations_batch(dataloader_a, model, dims, cuda)
+    m2, s2 = get_activations_batch(dataloader_b, model, dims, cuda)
+    fid_value = calculate_frechet_distance(m1, s1, m2, s2)
+    return fid_value
 
 
 def calculate_fid_given_paths(paths, batch_size, cuda, dims):

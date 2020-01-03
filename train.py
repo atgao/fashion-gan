@@ -28,8 +28,6 @@ cuda = True if torch.cuda.is_available() else False
 today = date.today().strftime("%Y%m%d")
 
 def train(b1, b2):
-	img_shape = (IMG_CHANNELS, IMG_SIZE, IMG_SIZE)
-
 	# dataset
 	data_transform_train = transforms.Compose([
 		transforms.Resize(IMG_SIZE),
@@ -90,7 +88,7 @@ def train(b1, b2):
 	n_row = 10
 	fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
 	# make directory for saving images
-	os.makedirs("images/%s" % CATEGORIES_AS_STR, exist_ok=True)
+	os.makedirs("%s/%s" % (GENERATED_BASE, CATEGORIES_AS_STR), exist_ok=True)
 
 	# save losses across all
 	G_losses = []
@@ -98,8 +96,7 @@ def train(b1, b2):
 
 	# training loop 
 	for epoch in range(N_EPOCHS):
-		for i, (imgs, _) in enumerate(dataloader):
-
+		for i, (imgs, paths) in enumerate(dataloader):
 			# Adversarial ground truths
 			valid = Variable(Tensor(imgs.shape[0], 1).fill_(1.0), requires_grad=False)
 			fake = Variable(Tensor(imgs.shape[0], 1).fill_(0.0), requires_grad=False)
