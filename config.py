@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # deprecated
-# TEST_BATCH_SIZE = 32
+TEST_BATCH_SIZE = 32
 # EXTRACT_BATCH_SIZE = 128
 # TEST_BATCH_COUNT = 30
 # NUM_WORKERS = 4
