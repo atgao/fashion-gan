@@ -97,7 +97,7 @@ class Discriminator(nn.Module):
         validity = self.model(z)
         return validity
 
-def sample_image(decoder, n_row, name, fixed_noise):
+def sample_image(decoder, n_row, name, fixed_noise, individual=False):
     """Saves a grid of generated digits"""
     # Sample noise
     if fixed_noise is not None:
@@ -106,7 +106,13 @@ def sample_image(decoder, n_row, name, fixed_noise):
         Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
         z = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
     gen_imgs = decoder(z)
-    save_image(gen_imgs.data, "images/%s/%s.png" % (CATEGORIES_AS_STR, name), nrow=n_row, normalize=True)
+
+    if individual:
+        for i in range(gen_imgs.size(0)): # save them one by one
+            save_image(gen_imgs.data[i, :, :, :], "images/%s/%s-%d.png" % (CATEGORIES_AS_STR, name, i), normalize=True)
+    else: # create grid
+        save_image(gen_imgs.data, "images/%s/%s.png" % (CATEGORIES_AS_STR, name), nrow=n_row, normalize=True)
+
 
 #def sample_image_fixed(decoder, fixed_noise, n_row, name):
 #    """Saves a grid of generated digits"""

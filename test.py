@@ -28,13 +28,13 @@ from pytorch_fid.inception import *
 cuda = True if torch.cuda.is_available() else False
 today = date.today().strftime("%Y%m%d")
 
-def test():
+def test(ver):
 	device = torch.device("cuda" if cuda else "cpu")
 
 	# load the model
-	discriminator = Discriminator().to(device)
-	discriminator.load_state_dict(load_model("aae_discriminator", CONFIG_AS_STR, today))
-	discriminator.eval()
+	decoder = Decoder().to(device)
+	decoder.load_state_dict(load_model("aae_decoder", CONFIG_AS_STR, ver, device))
+	decoder.eval()
 
 	if cuda:
 		encoder.cuda()
@@ -46,22 +46,29 @@ def test():
 
 	# generate fixed noise vector
 	n_row = 10
+	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 	fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
 	name = gen_name("aae", CONFIG_AS_STR, today, "test")
+	os.makedirs("images/%s" % CATEGORIES_AS_STR, exist_ok=True)
 
 	if FIXED_NOISE:
-		sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise)
+		sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise, individual=True)
 	else:
-		sample_image(decoder=decoder, n_row=n_row, name=name)
+		sample_image(decoder=decoder, n_row=n_row, name=name, individual=True)
 
 
-	path = ["data/Img", "images/%s/%s" % (CATEGORIES_AS_STR, name) ]
+	path = ["data/Img", "images/%s/" % CATEGORIES_AS_STR ]
 	fid_value = calculate_fid_given_paths(path,
                                           TEST_BATCH_SIZE,
-                                          cuda)
+                                          cuda,
+                                          2048)
 
 	print('FID: ', fid_value)
 
 if __name__ == '__main__':
-	test()
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--ver", type=str, default=today, help="YYYYMMDD format")
+	opt = parser.parse_args()
+
+	test(opt.ver)
 
