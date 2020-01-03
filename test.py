@@ -45,16 +45,16 @@ def test(ver):
 
 
 	# generate fixed noise vector
-	n_row = 1
+	n_row = 10
 	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 	fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
 	name = gen_name("aae", CONFIG_AS_STR, today, "test")
 	os.makedirs("images/%s" % CATEGORIES_AS_STR, exist_ok=True)
 
 	if FIXED_NOISE:
-		sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise)
+		sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise, individual=True)
 	else:
-		sample_image(decoder=decoder, n_row=n_row, name=name)
+		sample_image(decoder=decoder, n_row=n_row, name=name, individual=True)
 
 
 	path = ["data/Img", "images/%s/" % CATEGORIES_AS_STR ]
