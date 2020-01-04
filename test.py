@@ -4,6 +4,7 @@ import os
 import numpy as np
 import math
 import itertools
+import pprint
 from datetime import date
 
 import torchvision.transforms as transforms
@@ -30,13 +31,18 @@ cuda = True if torch.cuda.is_available() else False
 today = date.today().strftime("%Y%m%d")
 
 
-def _get_base_dataloader():
+def _get_base_dataloader(sample=False):
+    if sample:
+        _type = "sample"
+    else:
+        _type = "test"
+
     return torch.utils.data.DataLoader(
         Fashion_attr_prediction(
             categories=CATEGORIES,
-            type="test",
+            type=_type,
             transform=TEST_TRANSFORM_FN,
-            crop=True
+            crop=True,
         ),
         batch_size=128,
         num_workers=NUM_WORKERS,
@@ -83,9 +89,18 @@ def test(ver):
     else:
         sample_image(decoder=decoder, n_row=n_row, name=name, individual=True)
 
-
-    base_dataloader = _get_base_dataloader()
+    sample = True
+    base_dataloader = _get_base_dataloader(sample=sample)
     comparison_dataloader = _get_comp_dataloader()
+    print("Calculating FID")
+    if sample:
+        print(f"Using sampled list")
+        for category, sampled_test_images in base_dataloader.dataset.sample_dict.items():
+            print(f"Category {category}: {len(sampled_test_images)} images sampled")
+            pprint.pprint(sampled_test_images)
+    else:
+        print("Using full test list")
+
     fid_value = calculate_fid_given_dataloaders(base_dataloader,
                                                 comparison_dataloader,
                                                 cuda,

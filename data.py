@@ -12,14 +12,16 @@ import random
 class Fashion_attr_prediction(data.Dataset):
     def __init__(self, categories, type="train",
                  transform=None, target_transform=None, crop=False, img_path=None,
-                 sample_size=20
+                 sample_size=10
                  ):
         self.transform = transform
         self.target_transform = target_transform
         self.crop = crop
         self.type = type
         self.train_list = []
+        self.test_dict = {i: [] for i in categories}
         self.train_dict = {i: [] for i in categories}
+        self.sample_dict = {i: [] for i in categories}
         self.test_list = []
         self.all_list = []
         self.sample_list = []
@@ -46,19 +48,30 @@ class Fashion_attr_prediction(data.Dataset):
         list_category_img = os.path.join(DATASET_BASE, r'Anno', r'list_category_img.txt')
         partition_pairs = self.read_lines(list_eval_partition)
         category_img_pairs = self.read_lines(list_category_img)
-        for k, v in category_img_pairs:
-            v = int(v)
-            if v in self.train_dict:
-                self.anno[k] = v
-        for k, v in partition_pairs:
-            if k in self.anno:
-                if v == "train":
-                    self.train_list.append(k)
-                    self.train_dict[self.anno[k]].append(k)
-                else:
-                    # Test and Val
-                    self.test_list.append(k)
+
+        for img_path, category in category_img_pairs:
+            category = int(category)
+            if category in self.train_dict:
+                self.anno[img_path] = category
+
+        for img_path, partition in partition_pairs:
+            if img_path not in self.anno:
+                continue
+            if partition == "train":
+                self.train_list.append(img_path)
+                self.train_dict[self.anno[img_path]].append(img_path)
+            else:
+                # Test and Val
+                self.test_list.append(img_path)
+                self.test_dict[self.anno[img_path]].append(img_path)
+
         self.all_list = self.test_list + self.train_list
+
+        for category, sample_images in self.test_dict.items():
+            sampled_test_images = random.choices(sample_images, k=self.sample_size)
+            self.sample_dict[category] = sampled_test_images
+            self.sample_list.extend(sampled_test_images)
+
         random.shuffle(self.train_list)
         random.shuffle(self.test_list)
         random.shuffle(self.all_list)

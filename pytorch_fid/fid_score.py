@@ -242,9 +242,12 @@ def get_activations_batch(dataloader, model, dims=2048,
                     cuda=False, verbose=False):
     model.eval()
     pred_arr = np.empty((len(dataloader.dataset), dims))
+    if verbose:
+        print('Computing activation statistics for {} images'.format(len(dataloader.dataset)))
     for i, (imgs, _) in enumerate(dataloader):
         if verbose:
-            print('\rPropagating batch {}/{}'.format(i + 1, len(dataloader)),
+            # + 1 for display of indexing from 1. Just for semantic reasons
+            print('\rPropagating batch {}/{}'.format(i + 1, (len(dataloader.dataset) // dataloader.batch_size) + 1),
                   end='', flush=True)
         batch_size = imgs.shape[0]
         start = i * batch_size
@@ -299,8 +302,8 @@ def calculate_fid_given_dataloaders(dataloader_a, dataloader_b, cuda, dims):
     model = InceptionV3([block_idx])
     if cuda:
         model.cuda()
-    m1, s1 = calculate_activation_statistics_dataloader(dataloader_a, model, dims, cuda)
-    m2, s2 = calculate_activation_statistics_dataloader(dataloader_b, model, dims, cuda)
+    m1, s1 = calculate_activation_statistics_dataloader(dataloader_a, model, dims, cuda, verbose=True)
+    m2, s2 = calculate_activation_statistics_dataloader(dataloader_b, model, dims, cuda, verbose=True)
     fid_value = calculate_frechet_distance(m1, s1, m2, s2)
     return fid_value
 
