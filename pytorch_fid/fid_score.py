@@ -67,7 +67,7 @@ parser.add_argument('-c', '--gpu', default='', type=str,
 
 
 def get_activations(files, model, batch_size=50, dims=2048,
-                    cuda=False, verbose=False, img_width=32, img_height=32):
+                    cuda=False, verbose=False, img_width=128, img_height=128):
     """Calculates the activations of the pool_3 layer for all images.
 
     Params:
@@ -99,7 +99,6 @@ def get_activations(files, model, batch_size=50, dims=2048,
 
     n_batches = len(files) // batch_size
     n_used_imgs = n_batches * batch_size
-
     pred_arr = np.empty((n_used_imgs, dims))
 
     for i in tqdm(range(n_batches)):
@@ -118,7 +117,6 @@ def get_activations(files, model, batch_size=50, dims=2048,
         # Reshape to (n_images, 3, height, width)
         images = images.transpose((0, 3, 1, 2))
         images /= 255
-
         batch = torch.from_numpy(images).type(torch.FloatTensor)
         if cuda:
             batch = batch.cuda()
@@ -130,7 +128,8 @@ def get_activations(files, model, batch_size=50, dims=2048,
         if pred.shape[2] != 1 or pred.shape[3] != 1:
             pred = adaptive_avg_pool2d(pred, output_size=(1, 1))
 
-        pred_arr[start:end] = pred.cpu().data.numpy().reshape(batch_size, -1)
+        pred_numpy = pred.cpu().data.numpy()
+        pred_arr[start:end] = pred_numpy.reshape(batch_size, -1)
 
     if verbose:
         print(' done')
@@ -242,8 +241,7 @@ def calculate_activation_statistics_dataloader(dataloader, model,
 def get_activations_batch(dataloader, model, dims=2048,
                     cuda=False, verbose=False):
     model.eval()
-    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-    pred_arr = np.empty((len(dataloader), dims))
+    pred_arr = np.empty((len(dataloader.dataset), dims))
     for i, (imgs, _) in enumerate(dataloader):
         if verbose:
             print('\rPropagating batch {}/{}'.format(i + 1, len(dataloader)),
@@ -252,11 +250,11 @@ def get_activations_batch(dataloader, model, dims=2048,
         start = i * batch_size
         end = start + batch_size
 
-        # black magic
-        imgs = imgs.numpy.transpose((0, 3, 1, 2))
+        imgs = imgs.numpy()
         imgs /= 255
-
-        batch = torch.from_numpy(imgs).type(Tensor)
+        batch = torch.from_numpy(imgs).type(torch.FloatTensor)
+        if cuda:
+            batch = batch.cuda()
         pred = model(batch)[0]
 
         # If model output is not scalar, apply global spatial average pooling.
@@ -264,7 +262,8 @@ def get_activations_batch(dataloader, model, dims=2048,
         if pred.shape[2] != 1 or pred.shape[3] != 1:
             pred = adaptive_avg_pool2d(pred, output_size=(1, 1))
 
-        pred_arr[start:end] = pred.cpu().data.numpy().reshape(batch_size, -1)
+        pred_numpy = pred.cpu().data.numpy()
+        pred_arr[start:end] = pred_numpy.reshape(batch_size, -1)
 
     if verbose:
         print(' done')
@@ -300,8 +299,8 @@ def calculate_fid_given_dataloaders(dataloader_a, dataloader_b, cuda, dims):
     model = InceptionV3([block_idx])
     if cuda:
         model.cuda()
-    m1, s1 = get_activations_batch(dataloader_a, model, dims, cuda)
-    m2, s2 = get_activations_batch(dataloader_b, model, dims, cuda)
+    m1, s1 = calculate_activation_statistics_dataloader(dataloader_a, model, dims, cuda)
+    m2, s2 = calculate_activation_statistics_dataloader(dataloader_b, model, dims, cuda)
     fid_value = calculate_frechet_distance(m1, s1, m2, s2)
     return fid_value
 

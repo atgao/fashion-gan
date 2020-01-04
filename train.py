@@ -28,15 +28,6 @@ cuda = True if torch.cuda.is_available() else False
 today = date.today().strftime("%Y%m%d")
 
 def train(b1, b2):
-	# dataset
-	data_transform_train = transforms.Compose([
-		transforms.Resize(IMG_SIZE),
-		transforms.CenterCrop(CROP_SIZE),
-		transforms.RandomHorizontalFlip(),
-		transforms.ToTensor(),
-		transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
-		])
-
 	# Use binary cross-entropy loss
 	adversarial_loss = torch.nn.BCELoss()
 	pixelwise_loss = torch.nn.L1Loss()
@@ -58,8 +49,9 @@ def train(b1, b2):
 	# os.makedirs("../../data/deepfashion", exist_ok=True)
 	dataloader = torch.utils.data.DataLoader(
 		Fashion_attr_prediction(
+            categories=CATEGORIES,
 			type="train", 
-			transform=data_transform_train,
+			transform=TRANSFORM_FN,
 			crop=True
 		),
 		batch_size=TRAIN_BATCH_SIZE,

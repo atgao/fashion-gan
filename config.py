@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+import torchvision.transforms as transforms
 
 # deprecated
-TEST_BATCH_SIZE = 32
 # EXTRACT_BATCH_SIZE = 128
 # TEST_BATCH_COUNT = 30
 # NUM_WORKERS = 4
@@ -13,11 +13,13 @@ TEST_BATCH_SIZE = 32
 # ENABLE_INSHOP_DATASET = False
 # INSHOP_DATASET_PRECENT = 0.8
 # INTER_DIM = 512
+
+TEST_BATCH_SIZE = 32
 FIXED_NOISE = True
 
 TRAIN_BATCH_SIZE = 128
 LR = 0.0004
-N_EPOCHS = 15
+N_EPOCHS = 1
 SAMPLE_INTERVAL = 400
 NUM_WORKERS = 4
 DATASET_BASE = 'data/'
@@ -30,3 +32,18 @@ CATEGORIES_AS_STR = ",".join([str(c) for c in CATEGORIES])
 LATENT_DIM = 200
 CONFIG_AS_STR = "_".join([str(c) for c in [CATEGORIES_AS_STR, LATENT_DIM, IMG_SIZE, N_EPOCHS, LR, TRAIN_BATCH_SIZE]])
 # DISTANCE_METRIC = ('euclidean', 'euclidean')
+
+TRANSFORM_FN = transforms.Compose([
+    transforms.Resize(IMG_SIZE),
+    transforms.CenterCrop(CROP_SIZE),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+])
+
+TEST_TRANSFORM_FN = transforms.Compose([
+    transforms.Resize(IMG_SIZE),
+    transforms.CenterCrop(CROP_SIZE),
+    transforms.ToTensor(),
+    transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
+])

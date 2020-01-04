@@ -1,3 +1,5 @@
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import argparse
 import os
 import numpy as np
@@ -109,9 +111,9 @@ def sample_image(decoder, n_row, name, fixed_noise, individual=False):
 
     if individual:
         for i in range(gen_imgs.size(0)): # save them one by one
-            save_image(gen_imgs.data[i, :, :, :], "images/%s/%s-%d.png" % (CATEGORIES_AS_STR, name, i), normalize=True)
+            save_image(gen_imgs.data[i, :, :, :], "%s/%s/%s-%d.png" % (GENERATED_BASE, CATEGORIES_AS_STR, name, i), normalize=True)
     else: # create grid
-        save_image(gen_imgs.data, "images/%s/%s.png" % (CATEGORIES_AS_STR, name), nrow=n_row, normalize=True)
+        save_image(gen_imgs.data, "%s/%s/%s.png" % (GENERATED_BASE, CATEGORIES_AS_STR, name), nrow=n_row, normalize=True)
 
 
 #def sample_image_fixed(decoder, fixed_noise, n_row, name):

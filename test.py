@@ -1,3 +1,4 @@
+# Do not delete this
 import argparse
 import os
 import numpy as np
@@ -14,8 +15,8 @@ from utils import *
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torch.autograd import Variable
-from data import Fashion_attr_prediction
-from aae import * # import the model 
+from data import Fashion_attr_prediction, GeneratedDataset
+from aae import *  # import the model
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,47 +29,74 @@ from pytorch_fid.inception import *
 cuda = True if torch.cuda.is_available() else False
 today = date.today().strftime("%Y%m%d")
 
+
+def _get_base_dataloader():
+    return torch.utils.data.DataLoader(
+        Fashion_attr_prediction(
+            categories=CATEGORIES,
+            type="test",
+            transform=TEST_TRANSFORM_FN,
+            crop=True
+        ),
+        batch_size=128,
+        num_workers=NUM_WORKERS,
+        shuffle=True,
+    )
+
+
+def _get_comp_dataloader():
+    return torch.utils.data.DataLoader(
+        GeneratedDataset(
+            base_dir="./{}/{}".format(GENERATED_BASE, CATEGORIES_AS_STR),
+            transform=TEST_TRANSFORM_FN,
+        ),
+        batch_size=128,
+        num_workers=NUM_WORKERS,
+        shuffle=True,
+    )
+
+
 def test(ver):
-	device = torch.device("cuda" if cuda else "cpu")
+    device = torch.device("cuda" if cuda else "cpu")
 
-	# load the model
-	decoder = Decoder().to(device)
-	decoder.load_state_dict(load_model("aae_decoder", CONFIG_AS_STR, ver, device))
-	decoder.eval()
+    # load the model
+    decoder = Decoder().to(device)
+    decoder.load_state_dict(load_model("aae_decoder", CONFIG_AS_STR, ver, device))
+    decoder.eval()
 
-	if cuda:
-		encoder.cuda()
-		decoder.cuda()
-		discriminator.cuda()
-		adversarial_loss.cuda()
-		pixelwise_loss.cuda()
+    if cuda:
+        encoder.cuda()
+        decoder.cuda()
+        discriminator.cuda()
+        adversarial_loss.cuda()
+        pixelwise_loss.cuda()
+
+    # generate fixed noise vector
+    n_row = 10
+    Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
+    fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
+    name = gen_name("aae", CONFIG_AS_STR, today, "test")
+    os.makedirs("%s/%s" % (GENERATED_BASE, CATEGORIES_AS_STR), exist_ok=True)
+
+    if FIXED_NOISE:
+        sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise, individual=True)
+    else:
+        sample_image(decoder=decoder, n_row=n_row, name=name, individual=True)
 
 
-	# generate fixed noise vector
-	n_row = 10
-	Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
-	fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
-	name = gen_name("aae", CONFIG_AS_STR, today, "test")
-	os.makedirs("images/%s" % CATEGORIES_AS_STR, exist_ok=True)
+    base_dataloader = _get_base_dataloader()
+    comparison_dataloader = _get_comp_dataloader()
+    fid_value = calculate_fid_given_dataloaders(base_dataloader,
+                                                comparison_dataloader,
+                                                cuda,
+                                                2048)
 
-	if FIXED_NOISE:
-		sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise, individual=True)
-	else:
-		sample_image(decoder=decoder, n_row=n_row, name=name, individual=True)
+    print('FID: ', fid_value)
 
-
-	path = ["data/Img", "images/%s/" % CATEGORIES_AS_STR ]
-	fid_value = calculate_fid_given_paths(path,
-                                          TEST_BATCH_SIZE,
-                                          cuda,
-                                          2048)
-
-	print('FID: ', fid_value)
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	parser.add_argument("--ver", type=str, default=today, help="YYYYMMDD format")
-	opt = parser.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ver", type=str, default=today, help="YYYYMMDD format")
+    opt = parser.parse_args()
 
-	test(opt.ver)
-
+    test(opt.ver)

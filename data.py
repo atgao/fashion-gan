@@ -1,3 +1,5 @@
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import pathlib
 import torch.utils.data as data
 import torch
@@ -8,7 +10,7 @@ import random
 
 
 class Fashion_attr_prediction(data.Dataset):
-    def __init__(self, type="train",
+    def __init__(self, categories, type="train",
                  transform=None, target_transform=None, crop=False, img_path=None,
                  sample_size=20
                  ):
@@ -17,7 +19,7 @@ class Fashion_attr_prediction(data.Dataset):
         self.crop = crop
         self.type = type
         self.train_list = []
-        self.train_dict = {i: [] for i in CATEGORIES}
+        self.train_dict = {i: [] for i in categories}
         self.test_list = []
         self.all_list = []
         self.sample_list = []
@@ -57,7 +59,6 @@ class Fashion_attr_prediction(data.Dataset):
                     # Test and Val
                     self.test_list.append(k)
         self.all_list = self.test_list + self.train_list
-        self.sample_list = random.choices(self.all_list, k=self.sample_size)
         random.shuffle(self.train_list)
         random.shuffle(self.test_list)
         random.shuffle(self.all_list)
@@ -98,17 +99,16 @@ class Fashion_attr_prediction(data.Dataset):
             img_path = self.test_list[index]
         target = self.anno[img_path]
         img = self.read_crop(img_path)
-
         if self.transform is not None:
             img = self.transform(img)
         if self.target_transform is not None:
+            print(self.target_transform)
             target = self.target_transform(target)
-
         return img, img_path if self.type == "all" else target
 
 
 class GeneratedDataset(data.Dataset):
-    def __init__(self, categories_str, transform=None, target_transform=None):
+    def __init__(self, base_dir, transform=None, target_transform=None):
         """
 
         :param images: list of images
@@ -117,12 +117,20 @@ class GeneratedDataset(data.Dataset):
         """
         self.transform = transform
         self.target_transform = target_transform
-        path = pathlib.Path("./{}/{}".format(GENERATED_BASE, categories_str))
-        # recursively search for images in directory
-        self.img_paths = list(path.glob('**/*.jpg')) + list(path.glob('**/*.png'))
+        path = pathlib.Path(base_dir)
+        # match all images in directory
+        self.img_paths = [
+            str(p) for p in
+            list(path.glob('**/*.jpg')) + list(path.glob('**/*.png'))]
 
     def __len__(self):
         return len(self.img_paths)
+
+    def read_img(self, img_path):
+        with open(img_path, 'rb') as f:
+            with Image.open(f) as img:
+                img = img.convert('RGB')
+        return img
 
     def __getitem__(self, index):
         img_path = self.img_paths[index]
@@ -130,10 +138,3 @@ class GeneratedDataset(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
         return img, img_path
-
-    def read_img(self, img_path):
-        img_full_path = os.path.join(GENERATED_BASE, img_path)
-        with open(img_full_path, 'rb') as f:
-            with Image.open(f) as img:
-                img = img.convert('RGB')
-        return img
