@@ -150,7 +150,7 @@ def train(b1, b2):
 		#save_model(encoder, epoch, "encoder")
 		#save_model(decoder, epoch, "decoder")
 		#save_model(discriminator, epoch, "discriminator")
-	plot_losses("aae", G_losses, D_losses, CONFIG_AS_STR, today)
+	# plot_losses("aae", G_losses, D_losses, CONFIG_AS_STR, today)
 	return encoder, decoder, discriminator
 
 

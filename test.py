@@ -89,7 +89,7 @@ def test(ver):
     else:
         sample_image(decoder=decoder, n_row=n_row, name=name, individual=True)
 
-    sample = True
+    sample = False
     base_dataloader = _get_base_dataloader(sample=sample)
     comparison_dataloader = _get_comp_dataloader()
     print("Calculating FID")
