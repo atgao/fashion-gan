@@ -89,28 +89,12 @@ def train(b1, b2):
 	# training loop 
 	for epoch in range(N_EPOCHS):
 		for i, (imgs, paths) in enumerate(dataloader):
+			# Configure input
+			real_imgs = Variable(imgs.type(Tensor))
+
 			# Adversarial ground truths
 			valid = Variable(Tensor(imgs.shape[0], 1).fill_(1.0), requires_grad=False)
 			fake = Variable(Tensor(imgs.shape[0], 1).fill_(0.0), requires_grad=False)
-
-			# Configure input
-			real_imgs = Variable(imgs.type(Tensor))
-			# -----------------
-			#  Train Generator
-			# -----------------
-
-			optimizer_G.zero_grad()
-
-			encoded_imgs = encoder(real_imgs)
-			decoded_imgs = decoder(encoded_imgs)
-
-			# Loss measures generator's ability to fool the discriminator
-			g_loss = 0.001 * adversarial_loss(discriminator(encoded_imgs), valid) + 0.999 * pixelwise_loss(
-				decoded_imgs, real_imgs
-			)
-
-			g_loss.backward()
-			optimizer_G.step()
 
 			# ---------------------
 			#  Train Discriminator
@@ -121,6 +105,8 @@ def train(b1, b2):
 			# Sample noise as discriminator ground truth
 			z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], LATENT_DIM))))
 
+			encoded_imgs = encoder(real_imgs)
+			
 			# Measure discriminator's ability to classify real from generated samples
 			real_loss = adversarial_loss(discriminator(z), valid)
 			fake_loss = adversarial_loss(discriminator(encoded_imgs.detach()), fake)
@@ -128,6 +114,25 @@ def train(b1, b2):
 
 			d_loss.backward()
 			optimizer_D.step()
+
+
+			if i % N_CRITIC == 0:
+				# -----------------
+				#  Train Generator
+				# -----------------
+
+				optimizer_G.zero_grad()
+
+				encoded_imgs = encoder(real_imgs)
+				decoded_imgs = decoder(encoded_imgs)
+
+				# Loss measures generator's ability to fool the discriminator
+				g_loss = 0.001 * adversarial_loss(discriminator(encoded_imgs), valid) + 0.999 * pixelwise_loss(
+					decoded_imgs, real_imgs
+				)
+
+				g_loss.backward()
+				optimizer_G.step()
 
 			batches_done = epoch * len(dataloader) + i
 
