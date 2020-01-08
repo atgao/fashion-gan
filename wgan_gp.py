@@ -3,6 +3,7 @@ import os
 import numpy as np
 import math
 import sys
+from datetime import date
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
@@ -46,11 +47,10 @@ opt.latent_dim = LATENT_DIM
 opt.img_size = IMG_SIZE
 print(opt)
 
-
 img_shape = (opt.channels, opt.img_size, opt.img_size)
 
 cuda = True if torch.cuda.is_available() else False
-
+today = date.today().strftime("%Y%m%d")
 
 class Generator(nn.Module):
     def __init__(self):
@@ -152,66 +152,70 @@ def compute_gradient_penalty(D, real_samples, fake_samples):
 # ----------
 #  Training
 # ----------
+if __name__=="__main__":
+    torch.multiprocessing.freeze_support()
+    batches_done = 0
+    G_losses = []
+    D_losses = []
+    for epoch in range(opt.n_epochs):
+        for i, (imgs, _) in enumerate(dataloader):
 
-batches_done = 0
-for epoch in range(opt.n_epochs):
-    for i, (imgs, _) in enumerate(dataloader):
+            # Configure input
+            real_imgs = Variable(imgs.type(Tensor))
 
-        # Configure input
-        real_imgs = Variable(imgs.type(Tensor))
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
 
-        # ---------------------
-        #  Train Discriminator
-        # ---------------------
+            optimizer_D.zero_grad()
 
-        optimizer_D.zero_grad()
-
-        # Sample noise as generator input
-        z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], opt.latent_dim))))
-
-        # Generate a batch of images
-        fake_imgs = generator(z)
-
-        # Real images
-        real_validity = discriminator(real_imgs)
-        # Fake images
-        fake_validity = discriminator(fake_imgs)
-        # Gradient penalty
-        gradient_penalty = compute_gradient_penalty(discriminator, real_imgs.data, fake_imgs.data)
-        # Adversarial loss
-        d_loss = -torch.mean(real_validity) + torch.mean(fake_validity) + lambda_gp * gradient_penalty
-
-        d_loss.backward()
-        optimizer_D.step()
-
-        optimizer_G.zero_grad()
-
-        # Train the generator every n_critic steps
-        if i % opt.n_critic == 0:
-
-            # -----------------
-            #  Train Generator
-            # -----------------
+            # Sample noise as generator input
+            z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], opt.latent_dim))))
 
             # Generate a batch of images
             fake_imgs = generator(z)
-            # Loss measures generator's ability to fool the discriminator
-            # Train on fake images
+
+            # Real images
+            real_validity = discriminator(real_imgs)
+            # Fake images
             fake_validity = discriminator(fake_imgs)
-            g_loss = -torch.mean(fake_validity)
+            # Gradient penalty
+            gradient_penalty = compute_gradient_penalty(discriminator, real_imgs.data, fake_imgs.data)
+            # Adversarial loss
+            d_loss = -torch.mean(real_validity) + torch.mean(fake_validity) + lambda_gp * gradient_penalty
 
-            g_loss.backward()
-            optimizer_G.step()
+            d_loss.backward()
+            optimizer_D.step()
 
-            print(
-                "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-                % (epoch, opt.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
-            )
+            optimizer_G.zero_grad()
+            D_losses.append(d_loss.item())
+            # Train the generator every n_critic steps
+            if i % opt.n_critic == 0:
 
-            if batches_done % opt.sample_interval == 0:
-                save_image(fake_imgs.data[:25], "images/wgan_gp/%d.png" % batches_done, nrow=5, normalize=True)
+                # -----------------
+                #  Train Generator
+                # -----------------
 
-            batches_done += opt.n_critic
+                # Generate a batch of images
+                fake_imgs = generator(z)
+                # Loss measures generator's ability to fool the discriminator
+                # Train on fake images
+                fake_validity = discriminator(fake_imgs)
+                g_loss = -torch.mean(fake_validity)
 
-print("Saved Encoder to {}".format(save_model(generator, "wgan_gp_generator", CONFIG_AS_STR, today)))
-print("Saved Decoder to {}".format(save_model(discriminator, "wgan_gp_discriminator", CONFIG_AS_STR, today)))
+                g_loss.backward()
+                optimizer_G.step()
+                G_losses.append(g_loss.item())
+                print(
+                    "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
+                    % (epoch, opt.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
+                )
+
+                if batches_done % opt.sample_interval == 0:
+                    save_image(fake_imgs.data[:25], "images/wgan_gp/%s_%s_%d.png".format(CONFIG_AS_STR, today, batches_done), nrow=5, normalize=True)
+
+                batches_done += opt.n_critic
+
+    plot_losses("wgan_gp", G_losses, D_losses, CONFIG_AS_STR, today)
+    print("Saved Encoder to {}".format(save_model(generator, "wgan_gp_generator", CONFIG_AS_STR, today)))
+    print("Saved Decoder to {}".format(save_model(discriminator, "wgan_gp_discriminator", CONFIG_AS_STR, today)))
