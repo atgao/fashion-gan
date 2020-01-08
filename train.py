@@ -80,12 +80,13 @@ def train(b1, b2):
 	n_row = 10
 	fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
 	# make directory for saving images
-	os.makedirs("%s/%s" % (GENERATED_BASE, CATEGORIES_AS_STR), exist_ok=True)
+	path = "/".join([str(c) for c in [GENERATED_BASE, "aae", CONFIG_AS_STR, "train"]])
+	os.makedirs(path, exist_ok=True)
 
 	# save losses across all
 	G_losses = []
 	D_losses = []
-
+	
 	# training loop 
 	for epoch in range(N_EPOCHS):
 		for i, (imgs, paths) in enumerate(dataloader):
@@ -138,11 +139,11 @@ def train(b1, b2):
 				)
 			
 			if batches_done % SAMPLE_INTERVAL == 0:
-				name = gen_name("aae", CONFIG_AS_STR, today, batches_done)
+				name = gen_name(today, batches_done)
 				if FIXED_NOISE:
-					sample_image(decoder=decoder, n_row=n_row, name=name, fixed_noise=fixed_noise)
+					sample_image(decoder=decoder, n_row=n_row, path=path, name=name, fixed_noise=fixed_noise)
 				else:
-					sample_image(decoder=decoder, n_row=n_row, name=name)
+					sample_image(decoder=decoder, n_row=n_row, path=path, name=name)
 
 			# save losses
 			G_losses.append(g_loss.item())
@@ -150,10 +151,8 @@ def train(b1, b2):
 		#save_model(encoder, epoch, "encoder")
 		#save_model(decoder, epoch, "decoder")
 		#save_model(discriminator, epoch, "discriminator")
-	# plot_losses("aae", G_losses, D_losses, CONFIG_AS_STR, today)
+	plot_losses("aae", G_losses, D_losses, CONFIG_AS_STR, today)
 	return encoder, decoder, discriminator
-
-
 
 if __name__=="__main__":
 	os.makedirs("images", exist_ok=True)

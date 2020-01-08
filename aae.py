@@ -99,7 +99,7 @@ class Discriminator(nn.Module):
         validity = self.model(z)
         return validity
 
-def sample_image(decoder, n_row, name, fixed_noise, individual=False):
+def sample_image(decoder, n_row, path, name, fixed_noise=None, individual=False):
     """Saves a grid of generated digits"""
     # Sample noise
     if fixed_noise is not None:
@@ -111,9 +111,9 @@ def sample_image(decoder, n_row, name, fixed_noise, individual=False):
 
     if individual:
         for i in range(gen_imgs.size(0)): # save them one by one
-            save_image(gen_imgs.data[i, :, :, :], "%s/%s/%s-%d.png" % (GENERATED_BASE, CATEGORIES_AS_STR, name, i), normalize=True)
+            save_image(gen_imgs.data[i, :, :, :], "%s/%s_%d.png" % (path, name, i), normalize=True)
     else: # create grid
-        save_image(gen_imgs.data, "%s/%s/%s.png" % (GENERATED_BASE, CATEGORIES_AS_STR, name), nrow=n_row, normalize=True)
+        save_image(gen_imgs.data, "%s/%s.png" % (path, name), nrow=n_row, normalize=True)
 
 
 #def sample_image_fixed(decoder, fixed_noise, n_row, name):
