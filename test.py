@@ -73,7 +73,7 @@ def test(ver, model_type, generator):
     if cuda:
         decoder.cuda()
     # generate fixed noise vector
-    n_row = 10
+    n_row = 20
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
     fixed_noise = Variable(Tensor(np.random.normal(0, 1, (n_row ** 2, LATENT_DIM))))
     path = "/".join([str(c) for c in [GENERATED_BASE, model_type, CONFIG_AS_STR, "test"]])
@@ -85,7 +85,7 @@ def test(ver, model_type, generator):
     else:
         sample_image(decoder=decoder, n_row=n_row, path=path, name=name, individual=True)
 
-    sample = True
+    sample = False
     base_dataloader = _get_base_dataloader(sample=sample)
     comparison_dataloader = _get_comp_dataloader(path)
     print("Calculating FID")
@@ -108,8 +108,8 @@ def test(ver, model_type, generator):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--ver", type=str, default=today, help="YYYYMMDD format")
-    parser.add_argument("--type", type=str, default="aae", help="model type eg. aae")
-    parser.add_argument("--model", type=str, default="decoder", help="generator name eg. decoder or generator")
+    parser.add_argument("--type", type=str, help="model type eg. aae")
+    parser.add_argument("--model", type=str, help="generator name eg. decoder or generator")
     opt = parser.parse_args()
 
     test(opt.ver, opt.type, opt.model)
