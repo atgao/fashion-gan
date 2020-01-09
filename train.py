@@ -128,7 +128,8 @@ def train(b1, b2):
 				decoded_imgs = decoder(encoded_imgs)
 
 				# Loss measures generator's ability to fool the discriminator
-				g_loss = 0.001 * adversarial_loss(discriminator(encoded_imgs), valid) + 0.999 * pixelwise_loss(
+				g_loss = ADVERSARIAL_LOSS_RATIO * adversarial_loss(discriminator(encoded_imgs), valid) + \
+						 PIXELWISE_LOSS_RATIO * pixelwise_loss(
 					decoded_imgs, real_imgs
 				)
 

@@ -25,9 +25,9 @@ import torch
 
 # import fid score evaluator 
 from pytorch_fid.fid_score import *
-from pytorch_fid.inception import *
+from pytorch_inception_score.inception_score import *
 
-cuda = False#True if torch.cuda.is_available() else False
+cuda = False  # True if torch.cuda.is_available() else False
 today = date.today().strftime("%Y%m%d")
 
 
@@ -101,8 +101,9 @@ def test(ver, model_type, generator):
                                                 comparison_dataloader,
                                                 cuda,
                                                 2048)
-
     print('FID: ', fid_value)
+    inception_score = inception_score_with_dataloader(comparison_dataloader, resize=True, cuda=cuda)
+    print('Inception Score: ', inception_score)
 
 
 if __name__ == '__main__':
