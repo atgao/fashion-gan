@@ -117,7 +117,8 @@ class Fashion_attr_prediction(data.Dataset):
         if self.target_transform is not None:
             print(self.target_transform)
             target = self.target_transform(target)
-        return img, img_path if self.type == "all" else target
+        category = self.anno[img_path]
+        return img, category # if self.type == "all" else target
 
 
 class GeneratedDataset(data.Dataset):
