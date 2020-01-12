@@ -48,6 +48,7 @@ class Encoder(nn.Module):
             nn.Linear(INTER_DIM_1, INTER_DIM_1),
             nn.BatchNorm1d(INTER_DIM_1),
             nn.LeakyReLU(0.2, inplace=True),
+            nn.Linear(INTER_DIM_1, LATENT_DIM),
             #nn.Linear(int(IMG_CHANNELS*IMG_SIZE**2), INTER_DIM_2),
             #nn.LeakyReLU(0.2, inplace=True),
             #nn.Linear(INTER_DIM_2, INTER_DIM_1),
@@ -58,16 +59,16 @@ class Encoder(nn.Module):
             #nn.LeakyReLU(0.2, inplace=True),
         )
 
-        self.mu = nn.Linear(INTER_DIM_1, LATENT_DIM)
-        self.logvar = nn.Linear(INTER_DIM_1, LATENT_DIM)
+        #self.mu = nn.Linear(INTER_DIM_1, LATENT_DIM)
+        #self.logvar = nn.Linear(INTER_DIM_1, LATENT_DIM)
 
     def forward(self, img):
         img_flat = img.view(img.shape[0], -1)
         x = self.model(img_flat)
-        mu = self.mu(x)
-        logvar = self.logvar(x)
-        z = reparameterization(mu, logvar)
-        return z
+        #mu = self.mu(x)
+        #logvar = self.logvar(x)
+        #z = reparameterization(mu, logvar)
+        return x
 
 
 class Decoder(nn.Module):
@@ -105,11 +106,11 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(LATENT_DIM + N_CLASSES, 512),
+            nn.Linear(LATENT_DIM + N_CLASSES, INTER_DIM_1),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(512, 256),
+            nn.Linear(INTER_DIM_1, INTER_DIM_1),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(256, 1),
+            nn.Linear(INTER_DIM_1, 1),
             nn.Sigmoid(),
         )
 

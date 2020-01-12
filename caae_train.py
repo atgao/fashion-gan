@@ -27,35 +27,67 @@ import torch
 cuda = True if torch.cuda.is_available() else False
 today = date.today().strftime("%Y%m%d")
 def class_noise(class_num, dim, size):
-	if class_num == CATEGORIES[0]:
+	'''if class_num == CATEGORIES[0]:
 		mu = 3
 	else:
 		mu = -3
-	#print(dim)
 	mean = np.ones(dim) * mu
-	#print(mean)
 	cov = np.diag(np.ones(dim))
-	arr = np.random.multivariate_normal(mean, cov, size)
-	return arr
+	arr = np.random.multivariate_normal(mean, cov, size)'''
+	l = class_num
+	half = int(dim/2)
+	m1 = 10*np.cos((l*2*np.pi)/10)
+	m2 = 10*np.sin((l*2*np.pi)/10)
+	mean = [m1, m2]
+	mean = np.tile(mean, half)
+	v1 = [np.cos((l*2*np.pi)/10), np.sin((l*2*np.pi)/10)]
+	v2 = [-np.sin((l*2*np.pi)/10), np.cos((l*2*np.pi)/10)]
+	a1 = 8
+	a2 = .4
+	M =np.vstack((v1,v2)).T
+	S = np.array([[a1, 0], [0, a2]])
+	c = np.dot(np.dot(M, S), np.linalg.inv(M))
+	cov = np.zeros((dim, dim))
+	for i in range(half):
+		cov[i*2:(i+1)*2, i*2:(i+1)*2] = c
+	#cov = cov*cov.T
+	vec = np.random.multivariate_normal(mean=mean, cov=cov,
+										size=size)
+	return vec
 
 def sample_noise(size):
 	noise_vector = np.zeros((size, LATENT_DIM))
-	half = int(size/2)
+	'''half = int(size/2)
 	noise_vector[:half,:] = class_noise(CATEGORIES[0], LATENT_DIM, half)
-	noise_vector[half:,:] = class_noise(CATEGORIES[1], LATENT_DIM, size-half)
+	noise_vector[half:,:] = class_noise(CATEGORIES[1], LATENT_DIM, size-half)'''
+	section = int(size/N_CLASSES)
+	for i in range(N_CLASSES):
+		noise_vector[i*section:min((i+1)*section, size), :] = class_noise(i, LATENT_DIM, min(section, size-section*i))
 
 	return noise_vector
 
-def one_hot_encode(index1, index2):
-	arr = np.zeros((len(index1) + len(index2), N_CLASSES))
+def make_one_hot_real(size):
+	section = int(size/N_CLASSES)
+	indices = []
+	for i in range(N_CLASSES):
+		indices.append(range(i * section, min((i+1)*section, size)))
+	arr = one_hot_encode(indices, size)
+
+	return arr
+
+def one_hot_encode(index_arr, size):
+	'''arr = np.zeros((len(index1) + len(index2), N_CLASSES))
 	arr[index1, 0] = 1
-	arr[index2, 1] = 1
+	arr[index2, 1] = 1'''
+	arr = np.zeros((size, N_CLASSES))
+	for i in range(len(index_arr)):
+		arr[index_arr[i], i] = 1
 	return arr
 
 def train(b1, b2):
 	# Use binary cross-entropy loss
 	adversarial_loss = torch.nn.BCELoss()
-	pixelwise_loss = torch.nn.L1Loss()
+	pixelwise_loss = torch.nn.SmoothL1Loss()
 
 	device = torch.device("cuda" if cuda else "cpu")
 	# Initialize generator and discriminator
@@ -83,7 +115,7 @@ def train(b1, b2):
 		num_workers=NUM_WORKERS,
 		shuffle=True,
 	)
-
+	print("dont loading data")
 	# Optimizers
 	optimizer_G = torch.optim.Adam(
 		itertools.chain(encoder.parameters(), decoder.parameters()), lr=LR, betas=(b1, b2)
@@ -107,8 +139,9 @@ def train(b1, b2):
 	G_losses = []
 	D_losses = []
 
-	one_hot_label = one_hot_encode(range(int(TRAIN_BATCH_SIZE/2)), range(int(TRAIN_BATCH_SIZE/2), TRAIN_BATCH_SIZE))
-
+	#one_hot_label = one_hot_encode(range(int(TRAIN_BATCH_SIZE/2)), range(int(TRAIN_BATCH_SIZE/2), TRAIN_BATCH_SIZE))
+	one_hot_label = make_one_hot_real(TRAIN_BATCH_SIZE)
+	print("done getting hot labels")
 	# training loop 
 	for epoch in range(N_EPOCHS):
 		for i, (imgs, labels) in enumerate(dataloader):
@@ -131,14 +164,14 @@ def train(b1, b2):
 			if imgs.shape[0] == TRAIN_BATCH_SIZE:
 				real_labels = Variable(Tensor(one_hot_label))
 			else:
-				real_labels = Variable(Tensor(one_hot_encode(range(int(imgs.shape[0]/2)), range(int(imgs.shape[0]/2), imgs.shape[0]))))
+				real_labels = Variable(Tensor(make_one_hot_real(imgs.shape[0])))
+			#print("made one hot labels again")
 			encoded_imgs = encoder(real_imgs)
-			#print(labels)
-			#print(np.where(labels == CATEGORIES[0]))
-			#print(len(np.where(labels == CATEGORIES[0])))
-			#print(np.where(labels == CATEGORIES[0]).shape)
-			#print(np.where(labels == CATEGORIES[1]))
-			fake_labels = Variable(Tensor(one_hot_encode(np.where(labels == CATEGORIES[0])[0], np.where(labels==CATEGORIES[1])[0])))
+			indices = []
+			for j in range(N_CLASSES):
+				indices.append(np.where(labels==CATEGORIES[j])[0])
+			fake_labels = Variable(Tensor(one_hot_encode(indices, imgs.shape[0])))
+			#print("made fake labels")
 			# Measure discriminator's ability to classify real from generated samples
 			real_loss = adversarial_loss(discriminator(z, real_labels), valid)
 
@@ -185,9 +218,13 @@ def train(b1, b2):
 			# save losses
 			G_losses.append(g_loss.item())
 			D_losses.append(d_loss.item())
-		#save_model(encoder, epoch, "encoder")
-		#save_model(decoder, epoch, "decoder")
-		#save_model(discriminator, epoch, "discriminator")
+		if epoch % 10 == 0:
+			config_mid = gen_name(CATEGORIES_AS_STR, LATENT_DIM, IMG_SIZE, epoch, LR, TRAIN_BATCH_SIZE, N_CRITIC)
+			print("Saved Encoder to {}".format(save_model(encoder, "caae_encoder", config_mid, today)))
+			print("Saved Decoder to {}".format(save_model(decoder, "caae_decoder", config_mid, today)))
+			print("Saved Discriminator to {}".format(save_model(discriminator, "caae_discriminator", config_mid, today)))
+			plot_losses("caae", G_losses, D_losses, config_mid, today)
+	
 	plot_losses("caae", G_losses, D_losses, CONFIG_AS_STR, today)
 	return encoder, decoder, discriminator
 

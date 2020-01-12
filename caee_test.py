@@ -61,24 +61,25 @@ def test_dist(ver):
 
     Xs = []
     Ys = []
-    for i in range(len(CATEGORIES)):
+    n_classes = len(CATEGORIES)
+    for i in range(n_classes):
         Xs.append(np.zeros(1))
         Ys.append(np.zeros(1))
     for i, (imgs, labels) in enumerate(dataloader):
         real_imgs = Variable(imgs.type(Tensor))
         encoded_imgs = encoder(real_imgs).cpu().data.numpy()
-        for i in range(len(CATEGORIES)):
+        for i in range(n_classes):
             Xs[i] = np.append(Xs[i], encoded_imgs[np.where(labels == CATEGORIES[i]),0])
             Ys[i] = np.append(Ys[i], encoded_imgs[np.where(labels == CATEGORIES[i]),1])
     
-    for i in range(len(CATEGORIES)):
+    for i in range(n_classes):
         plt.figure(i)
-        plt.scatter(Xs[i], Ys[i], s=1)
+        plt.scatter(Xs[i], Ys[i], s=0.5)
         plt.title("Distribution in Latent Code for Category {}".format(CATEGORIES[i]))
         plt.xlim(-7, 7)
         plt.ylim(-7, 7)
-    plt.figure(len(CATEGORIES) + 1)
-    for i in range(len(CATEGORIES)):
+    plt.figure(n_classes + 1)
+    for i in range(n_classes):
         plt.scatter(Xs[i], Ys[i], s=1, label=str(CATEGORIES[i]))
     plt.xlim(-7, 7)
     plt.ylim(-7, 7)
