@@ -43,11 +43,19 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(int(IMG_CHANNELS*IMG_SIZE**2), 512),
+            nn.Linear(int(IMG_CHANNELS*IMG_SIZE**2), INTER_DIM_1),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(512, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(INTER_DIM_1, INTER_DIM_1),
+            nn.BatchNorm1d(INTER_DIM_1),
             nn.LeakyReLU(0.2, inplace=True),
+            #nn.Linear(int(IMG_CHANNELS*IMG_SIZE**2), INTER_DIM_2),
+            #nn.LeakyReLU(0.2, inplace=True),
+            #nn.Linear(INTER_DIM_2, INTER_DIM_1),
+            #nn.BatchNorm1d(INTER_DIM_1),
+            #nn.LeakyReLU(0.2, inplace=True),
+            #nn.Linear(INTER_DIM_1, INTER_DIM_1),
+            #nn.BatchNorm1d(INTER_DIM_1),
+            #nn.LeakyReLU(0.2, inplace=True),
         )
 
         self.mu = nn.Linear(512, LATENT_DIM)
@@ -74,6 +82,16 @@ class Decoder(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.Linear(512, int(IMG_CHANNELS*IMG_SIZE**2)),
             nn.Tanh(),
+            #nn.Linear(LATENT_DIM, 512),
+            #nn.LeakyReLU(0.2, inplace=True),
+            #nn.Linear(512, 512),
+            #nn.BatchNorm1d(512),
+            #nn.LeakyReLU(0.2, inplace=True),
+            #nn.Linear(512, 1024),
+            #nn.BatchNorm1d(1024),
+            #nn.LeakyReLU(0.2, inplace=True),
+            #nn.Linear(1024, int(IMG_CHANNELS*IMG_SIZE**2)),
+            #nn.Tanh(),
         )
 
     def forward(self, z):
