@@ -87,7 +87,7 @@ def one_hot_encode(index_arr, size):
 def train(b1, b2):
 	# Use binary cross-entropy loss
 	adversarial_loss = torch.nn.BCELoss()
-	pixelwise_loss = torch.nn.SmoothL1Loss()
+	pixelwise_loss = torch.nn.L1Loss()
 
 	device = torch.device("cuda" if cuda else "cpu")
 	# Initialize generator and discriminator

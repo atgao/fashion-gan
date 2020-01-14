@@ -17,7 +17,7 @@ def load_model(model_type, config, date, device):
 	model_path = "model/{}.pkl".format(gen_name(model_type, config, date))
 	return torch.load(model_path, map_location=device)
 
-def plot_losses(model_name, G_losses, D_losses, config, date, g_step = 1, d_step = 1, show=True, save=True):
+def plot_losses(model_name, G_losses, D_losses, config, date, g_step = 1, d_step = 1, show=False, save=True):
 	plt.figure(figsize=(10,5))
 	plt.title("Generator and Discriminator Loss During Training")
 	G_x = range(0, len(G_losses), g_step)
